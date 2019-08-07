@@ -34,12 +34,16 @@ namespace BangazonAPI.Controllers
        [HttpGet]
         public async Task<IActionResult> Get()
         {
+            //query string ?_include=products
+            //query string ?_include=payments
+            //query string ?q= query customers if either first & last names contains the searched term
             using (SqlConnection conn = Connection)
             {
                 conn.Open();
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "Write your SQL statement here to get all customers";
+                    cmd.CommandText = @"SELECT Id, FirstName, LastName 
+                                        FROM Customer";
                     SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
                     List<Customer> customers = new List<Customer>();
@@ -72,8 +76,11 @@ namespace BangazonAPI.Controllers
                 conn.Open();
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "Write your SQL statement here to get a single customer";
+                    cmd.CommandText = @"SELECT Id, FirstName, LastName
+                                        FROM Customer
+                                        WHERE Id = @id";
                     cmd.Parameters.Add(new SqlParameter("@id", id));
+
                     SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
                     Customer customer = null;
@@ -163,11 +170,6 @@ namespace BangazonAPI.Controllers
             }
         }
 
-        // DELETE api/values/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-        }
 
         private bool CustomerExists(int id)
         {

@@ -36,5 +36,28 @@ namespace TestBangazonAPI
                 Assert.True(customers.Count > 0);
             }
         }
+
+        [Fact]
+        public async Task Test_Get_Single_Customers()
+        {
+            using (var client = new APIClientProvider().Client)
+            {
+
+                var response = await client.GetAsync("/api/customers/2");
+
+
+                string responseBody = await response.Content.ReadAsStringAsync();
+                var customer = JsonConvert.DeserializeObject<Customer>(responseBody);
+
+                /*
+                    ASSERT
+                */
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.Equal(2, customer.Id);
+                Assert.Equal("Liè", customer.FirstName);
+                Assert.Equal("Dible", customer.LastName);
+
+            }
+        }
     }
 }
