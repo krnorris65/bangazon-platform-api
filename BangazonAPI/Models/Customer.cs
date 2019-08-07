@@ -12,5 +12,8 @@ namespace BangazonAPI.Models
 
         [Required]
         public string LastName { get; set; }
+
+        List<PaymentType> PaymentTypes { get; set; } = new List<PaymentType>();
+        List<Product> Products { get; set; } = new List<Product>();
     }
 }
