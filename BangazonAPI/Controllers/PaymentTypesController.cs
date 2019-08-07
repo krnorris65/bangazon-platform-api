@@ -223,7 +223,7 @@ namespace BangazonAPI.Controllers
                 }
                 else
                 {
-                    throw;
+                    throw new Exception("Payment Type is unable to be deleted at this time");
                 }
             }
         }
