@@ -153,5 +153,16 @@ namespace TestBangazonAPI
                 Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             }
         }
+
+        [Fact]
+        public async Task Test_Delete_PaymentType_On_Order()
+        {
+            using (var client = new APIClientProvider().Client)
+            {
+                var response = await client.DeleteAsync("/api/paymentTypes/1");
+
+                Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            }
+        }
     }
 }
