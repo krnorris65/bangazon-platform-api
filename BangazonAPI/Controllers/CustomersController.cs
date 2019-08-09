@@ -37,31 +37,37 @@ namespace BangazonAPI.Controllers
             //query string ?_include=products
             //query string ?_include=payments
             //query string ?q= query customers if either first & last names contains the searched term
-            string SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName 
+            string SqlCommandText;
+
+            if (_include == "products")
+            {
+                SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName,
+                                            p.Id AS ProductId, p.Title, p.Price, p.Description, p.Quantity, p.CustomerId AS pCustId, p.ProductTypeId
+                                        FROM Customer c
+                                        LEFT JOIN Product p ON c.Id = p.CustomerId
+                                        WHERE 1 = 1";
+            }
+            else if (_include == "payments")
+            {
+                SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName,
+                                            pt.Id AS PaymentTypeId, pt.[Name], pt.AcctNumber, pt.CustomerId AS ptCustId
+                                        FROM Customer c
+                                        LEFT JOIN PaymentType pt ON c.Id = pt.CustomerId
+                                        WHERE 1 = 1";
+            }
+            else
+            {
+                SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName 
                                         FROM Customer c
                                         WHERE 1 = 1";
+            }
+
             using (SqlConnection conn = Connection)
             {
                 conn.Open();
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
 
-                    if (_include == "products")
-                    {
-                        SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName,
-                                            p.Id AS ProductId, p.Title, p.Price, p.Description, p.Quantity, p.CustomerId, p.ProductTypeId
-                                        FROM Customer c
-                                        JOIN Product p ON c.Id = p.CustomerId
-                                        WHERE 1 = 1";
-                    }
-                    if(_include == "payments")
-                    {
-                        SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName,
-                                            pt.Id AS PaymentTypeId, pt.Name, pt.AcctNumber, pt.CustomerId
-                                        FROM Customer c
-                                        JOIN PaymentType pt ON c.Id = pt.CustomerId
-                                        WHERE 1 = 1";
-                    }
                     if (q != null)
                     {
                         SqlCommandText = $@"{SqlCommandText} AND
@@ -84,7 +90,71 @@ namespace BangazonAPI.Controllers
                             // You might have more columns
                         };
 
-                        customers.Add(customer);
+                        bool customerHasProducts = false;
+                        bool customerHasPayments = false; 
+
+                        Product product = new Product();
+                        PaymentType paymentType = new PaymentType();
+                        if (_include == "products")
+                        {
+                            customerHasProducts = !reader.IsDBNull(reader.GetOrdinal("ProductId"));
+                            if (customerHasProducts)
+                            {
+                                product.Id = reader.GetInt32(reader.GetOrdinal("ProductId"));
+                                product.Title = reader.GetString(reader.GetOrdinal("Title"));
+                                product.Price = reader.GetSqlMoney(reader.GetOrdinal("Price")).ToDouble();
+                                product.Description = reader.GetString(reader.GetOrdinal("Description"));
+                                product.Quantity = reader.GetInt32(reader.GetOrdinal("Quantity"));
+                                product.CustomerId = reader.GetInt32(reader.GetOrdinal("pCustId"));
+                                product.ProductTypeId = reader.GetInt32(reader.GetOrdinal("ProductTypeId"));
+                            }
+                        }
+                        if(_include == "payments")
+                        {
+                            customerHasPayments = !reader.IsDBNull(reader.GetOrdinal("PaymentTypeId"));
+                            if(customerHasPayments)
+                            {
+                                paymentType.Id = reader.GetInt32(reader.GetOrdinal("PaymentTypeId"));
+                                paymentType.Name = reader.GetString(reader.GetOrdinal("Name"));
+                                paymentType.AcctNumber = reader.GetInt32(reader.GetOrdinal("AcctNumber"));
+                                paymentType.CustomerId = reader.GetInt32(reader.GetOrdinal("ptCustId"));
+                            }
+                                                       
+                        }
+
+                        //if the customer is already in the customers list
+                        if (customers.Any(c => c.Id == customer.Id))
+                        {
+                            //find the customer
+                            Customer ExistingCustomer = customers.Find(c => c.Id == customer.Id);
+                            //depending on what the includes is equal to, add the appropriate resource to the list on the Customer
+                            if (_include == "products" && customerHasProducts)
+                            {
+
+                                ExistingCustomer.Products.Add(product);
+                            }
+
+                            if (_include == "payments" && customerHasPayments)
+                            {
+                                ExistingCustomer.PaymentTypes.Add(paymentType);
+                            }
+                        }
+                        else
+                        {
+                            //if the customer is not in the customers list
+                            //if the includes is not null, then add the resource to the proper list
+                            if (_include == "products" && customerHasProducts)
+                            {
+                                customer.Products.Add(product);
+
+                            }
+                            if (_include == "payments" && customerHasPayments)
+                            {
+                                customer.PaymentTypes.Add(paymentType);
+                            }
+                            //then add the customer to the customers List
+                            customers.Add(customer);
+                        }
                     }
 
                     reader.Close();
