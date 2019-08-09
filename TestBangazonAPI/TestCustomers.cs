@@ -15,14 +15,7 @@ namespace TestBangazonAPI
         {
             using (var client = new APIClientProvider().Client)
             {
-                /*
-                    ARRANGE
-                */
 
-
-                /*
-                    ACT
-                */
                 var response = await client.GetAsync("/api/customers");
 
 
@@ -34,6 +27,24 @@ namespace TestBangazonAPI
                 */
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
                 Assert.True(customers.Count > 0);
+            }
+        }
+
+        [Fact]
+        public async Task Test_Get_All_Customers_Search()
+        {
+            using(var client = new APIClientProvider().Client)
+            {
+                var response = await client.GetAsync("/api/customers?q=ib");
+
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                var customers = JsonConvert.DeserializeObject<List<Customer>>(responseBody);
+
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+                Assert.Equal("Liè", customers[0].FirstName);
+                Assert.Equal("Dible", customers[0].LastName);
+
             }
         }
 

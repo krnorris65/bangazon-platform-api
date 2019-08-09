@@ -32,18 +32,45 @@ namespace BangazonAPI.Controllers
 
         //GET api/values
        [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Get(string _include, string q)
         {
             //query string ?_include=products
             //query string ?_include=payments
             //query string ?q= query customers if either first & last names contains the searched term
+            string SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName 
+                                        FROM Customer c
+                                        WHERE 1 = 1";
             using (SqlConnection conn = Connection)
             {
                 conn.Open();
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = @"SELECT Id, FirstName, LastName 
-                                        FROM Customer";
+
+                    if (_include == "products")
+                    {
+                        SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName,
+                                            p.Id AS ProductId, p.Title, p.Price, p.Description, p.Quantity, p.CustomerId, p.ProductTypeId
+                                        FROM Customer c
+                                        JOIN Product p ON c.Id = p.CustomerId
+                                        WHERE 1 = 1";
+                    }
+                    if(_include == "payments")
+                    {
+                        SqlCommandText = @"SELECT c.Id AS CustomerId, c.FirstName, c.LastName,
+                                            pt.Id AS PaymentTypeId, pt.Name, pt.AcctNumber, pt.CustomerId
+                                        FROM Customer c
+                                        JOIN PaymentType pt ON c.Id = pt.CustomerId
+                                        WHERE 1 = 1";
+                    }
+                    if (q != null)
+                    {
+                        SqlCommandText = $@"{SqlCommandText} AND
+                                            c.FirstName LIKE @q
+                                            OR c.LastName LIKE @q";
+                        cmd.Parameters.Add(new SqlParameter("@q", $"%{q}%"));
+                    }
+
+                    cmd.CommandText = SqlCommandText;
                     SqlDataReader reader = await cmd.ExecuteReaderAsync();
 
                     List<Customer> customers = new List<Customer>();
@@ -51,7 +78,7 @@ namespace BangazonAPI.Controllers
                     {
                         Customer customer = new Customer
                         {
-                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Id = reader.GetInt32(reader.GetOrdinal("CustomerId")),
                             FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
                             LastName = reader.GetString(reader.GetOrdinal("LastName")),
                             // You might have more columns
